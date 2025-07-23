@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube Lyrics Megjelenítő</title>
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #player { margin-top: 20px; }
+    #lyrics { white-space: pre-wrap; margin-top: 20px; background: #f0f0f0;
+              padding: 10px; border-radius: 8px; max-width: 640px; }
+  </style>
+</head>
+<body>
+  <h1>🎵 YouTube Lyrics Megjelenítő</h1>
+  <input type="text" id="youtubeUrl" placeholder="YouTube link" style="width: 60%;">
+  <button onclick="loadVideo()">Lejátszás + Lyrics</button>
+  <div id="player"></div>
+  <div id="lyrics">🎶 Itt fog megjelenni a dalszöveg...</div>
+  <script>
+    let player;
+    function extractVideoId(url) {
+      const match = url.match(/(?:v=|\\.be\\/)([a-zA-Z0-9_-]{11})/);
+      return match ? match[1] : null;
+    }
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {height:'360', width:'640', videoId: ''});
+    }
+    function loadVideo() {
+      const url = document.getElementById('youtubeUrl').value;
+      const vid = extractVideoId(url);
+      if (!vid) return alert("Nem érvényes YouTube link.");
+      player.loadVideoById(vid);
+      fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${vid}`)
+        .then(res=>res.json())
+        .then(data=>{
+          const parts = data.title.split(" - ");
+          const artist = parts[0] || '';
+          const title = (parts[1]||'').replace(/\\(.*?\\)/g,'').trim();
+          document.getElementById("lyrics").innerText = "🔍 Betöltés...";
+          fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`)
+            .then(r=>r.json())
+            .then(d=> {
+              document.getElementById("lyrics").innerText = d.lyrics || "❌ Nincs lyrics.";
+            })
+            .catch(()=> {
+              document.getElementById("lyrics").innerText = "⚠️ Hiba a lekérésnél.";
+            });
+        });
+    }
+  </script>
+</body>
+</html>
